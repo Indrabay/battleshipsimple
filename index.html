@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>Battle Ship</title>
+  <link rel="stylesheet" href="">
+
+  <style>
+    html {
+        font-family: monospace;
+      }
+
+      body {
+        width: 50%;
+        max-width: 800px;
+        min-width: 480px;
+        margin: 0 auto;
+      }
+
+      /* .lastResult {
+        color: white;
+        padding: 3px;
+      } */
+    </style>
+</head>
+
+<body>
+  <h1>Battle Ship</h1>
+  <p class="playerTurn"></p>
+  <div class="shipOptions">
+    <select name="optionOfShips" id="optionOfShips" class="optionOfShips">
+      <option value="c">Carrier (5)</option>
+      <option value="b">Battle Ship (4)</option>
+      <option value="d">Destroyer (3)</option>
+      <option value="s">Submarine (3)</option>
+      <option value="p">Patrol Boat (2)</option>
+    </select>
+    <br>
+    <br>
+    <div class="form">
+      <label for="inputCoord">Masukkan koordinat (baris,kolom): </label>
+      <input type="text" class="inputCoord">
+      <br>
+      <br>
+      <select name="Orientation" id="orientation" class="orientation">
+        <option value="kanan">Horizontal</option>
+        <option value="bawah">Vertikal</option>
+      </select>
+      <br>
+      <br>
+      <p class="snakes"></p>
+      <p class="ladders"></p>
+    </div>
+
+    <div class="forButton">
+      <input type="submit" value="OK" class="submitShip">
+      <input type="submit" value="CHANGE" class="changePlayerInit">
+      <input type="submit" value="PLAY" class="playing">
+      <input type="submit" value="RANDOM PLACE" class="randomPlaceShip">
+    </div>
+
+    <p class="boardToShow"></p>
+    <p class="boardCheat"></p>
+    <p class="eventShoot"></p>
+
+    <script>
+      var player1 = {
+        name: 'player1',
+        board: [],
+        boardPlay: [],
+        ship: ['c', 'b', 'd', 's', 'p'],
+        hit: {
+          "c": 5,
+          "b": 4,
+          "d": 3,
+          "s": 3,
+          "p": 2
+        },
+        guess: [],
+      }
+      var player2 = {
+        name: 'player2',
+        board: [],
+        boardPlay: [],
+        ship: ['c', 'b', 'd', 's', 'p'],
+        hit: {
+          "c": 5,
+          "b": 4,
+          "d": 3,
+          "s": 3,
+          "p": 2
+        },
+        guess: [],
+      }
+
+      var shipDictionary = [
+        {name: 'c', length: 5},
+        {name: 'b', length: 4},
+        {name: 'd', length: 3},
+        {name: 's', length: 3},
+        {name: 'p', length: 2}
+      ]
+
+      var optionOfShips = document.querySelector(".optionOfShips");
+      var inputCoord = document.querySelector(".inputCoord");
+      var orientation = document.querySelector(".orientation");
+      var submitShip = document.querySelector(".submitShip");
+      var boardToShow = document.querySelector(".boardToShow");
+      var boardCheat = document.querySelector(".boardCheat");
+      var randomPlaceShip = document.querySelector(".randomPlaceShip");
+      boardCheat.style.whiteSpace = 'pre';
+      var changePlayerInit = document.querySelector(".changePlayerInit");
+      var playing = document.querySelector(".playing");
+      boardToShow.style.whiteSpace = 'pre';
+      var playerTurn = document.querySelector(".playerTurn");
+      playerTurn.textContent = 'player1';
+      changePlayerInit.disabled = true;
+      playing.disabled = true;
+      var eventShoot = document.querySelector(".eventShoot");
+      eventShoot.style.whiteSpace = 'pre';
+      var randomCount = 0;
+      var cheatIndex = 1;
+      var initial = 0;
+      var inputCoordShoot;
+      var shootButton;
+      let cheatShoot;
+      var changePlayerButton;
+
+      function createBoard() {
+        // var player = playerTurn.textContent === 'player1' ? player1 : player2;
+        var board1 = [];
+        var board1Play = [];
+        var board2 = [];
+        var board2Play = [];
+        for (let i = 0; i < 10; i++) {
+          board1[i] = [];
+          board1Play[i] = [];
+          board2[i] = [];
+          board2Play[i] = [];
+          for (let j = 0; j < 10; j++) {
+            board1[i][j] = ' ';
+            board1Play[i][j] = ' ';
+            board2[i][j] = ' ';
+            board2Play[i][j] = ' ';
+          }
+        }
+        player1.board = board1;
+        player1.boardPlay = board1Play;
+        player2.board = board2;
+        player2.boardPlay = board2Play;
+      }
+      createBoard();
+
+      function showBoard() {
+        var player = playerTurn.textContent === 'player1' ? player1 : player2;
+        var board = ''.padEnd(2,' ');
+        for (let i = 0; i < player.board.length; i++) {
+          board += `${i+1}`.padEnd(2, ' ');
+        }
+        board += '\n';
+        for (let i = 0; i < player.board.length; i++) {
+          board += `${String.fromCharCode(65 + i)}`.padEnd(2, ' ');
+          for (let j = 0; j < player.board.length; j++) {
+            board += `${player.board[i][j]}`.padEnd(2, ' ');
+          }
+          board += '\n';
+        }
+        return board;
+      }
+
+      function showBoardCheat() {
+          var player = playerTurn.textContent === 'player1' ? player2 : player1;
+          var board = ''.padEnd(2, ' ');
+          for (let i = 0; i < player.board.length; i++) {
+            board += `${i + 1}`.padEnd(2, ' ');
+          }
+          board += '\n';
+          for (let i = 0; i < player.board.length; i++) {
+            board += `${String.fromCharCode(65 + i)}`.padEnd(2, ' ');
+            for (let j = 0; j < player.board.length; j++) {
+              if (player.boardPlay[i][j] !== ' ') {
+                board += `${player.boardPlay[i][j]}`.padEnd(2, ' ');
+              } else {
+                board += `${player.board[i][j]}`.padEnd(2, ' ');
+              }
+            }
+            board += '\n';
+          }
+          return board;
+        }
+
+      function showPlayingBoard() {
+        var player = playerTurn.textContent === 'player1' ? player2 : player1;
+        var board = ''.padEnd(2, ' ');
+        for (let i = 0; i < player.boardPlay.length; i++) {
+          board += `${i + 1}`.padEnd(2, ' ');
+        }
+        board += '\n';
+        for (let i = 0; i < player.boardPlay.length; i++) {
+          board += `${String.fromCharCode(65 + i)}`.padEnd(2, ' ');
+          for (let j = 0; j < player.boardPlay.length; j++) {
+            board += `${player.boardPlay[i][j]}`.padEnd(2, ' ');
+          }
+          board += '\n';
+        }
+        return board;
+      }
+
+      submitShip.addEventListener('click', manualCoord);
+      changePlayerInit.addEventListener('click', initSecond);
+      playing.addEventListener('click', play);
+      randomPlaceShip.addEventListener('click', randomCoord);
+
+      function initSecond() {
+        playerTurn.textContent = playerTurn.textContent === 'player1' ? 'player2' : 'player1';
+        submitShip.disabled = false;
+        changePlayerInit.disabled = true;
+        randomPlaceShip.disabled = false;
+        boardToShow.textContent = showBoard()
+      }
+
+      boardToShow.textContent = showBoard()
+
+      function randomCoord() {
+        const dictShipType = ['c', 'b', 'd', 's', 'p'];
+        const randShipType = Math.floor(Math.random() * 5);
+        const shipType = dictShipType[randShipType];
+        const dictOrientation = ['kanan', 'bawah'];
+        const randOrientationIndex = Math.floor(Math.random() * 2);
+        const orientationPlace = dictOrientation[randOrientationIndex];
+        let baris = Math.floor(Math.random() * 10);
+        baris = String.fromCharCode(65 + baris);
+        let colum = Math.floor(Math.random() * 10) + 1;
+        let coord = baris + colum
+        console.log(coord);
+        try {
+          console.log(orientationPlace, coord);
+          addShip(shipType, orientationPlace, coord, true);
+          randomCount += 1;
+        } catch (e) {
+          randomCoord()
+        }
+      }
+
+      function manualCoord() {
+        const orientationPlace = orientation.value;
+        const coord = inputCoord.value;
+        var type = optionOfShips.value;
+        addShip(type, orientationPlace, coord);
+      }
+
+      function addShip(type, orientationPlace, inputRaw, isRandom = false) {
+        // var inputRaw = inputCoord.value;
+        var player = playerTurn.textContent === 'player1' ? player1 : player2;
+        var row = inputRaw.substring(0,1).toUpperCase().charCodeAt(0) - 65;
+        var colum = Number(inputRaw.substring(1,inputRaw.length)) - 1;
+        if (row < 0 || row > 9) {
+          if (isRandom === false) {
+            alert('Harus antara A - J');
+          }
+          throw false;
+        }
+        if (colum < 0 || colum > 9) {
+          if (isRandom === false) {
+            alert('Harus antara 1 - 10');
+          }
+          throw false;
+        }
+        
+        if (player.ship.includes(type) === false) {
+          if (isRandom === false) {
+            alert('Kapal sudah di pasang');
+          }
+          throw false;
+        }
+        // var orientationPlace = orientation.value;
+        var lengthShip;
+        for (let i = 0; i < shipDictionary.length; i++) {
+          if (shipDictionary[i].name === type) {
+            lengthShip = shipDictionary[i].length;
+          }
+        }
+        if (orientationPlace === 'kanan') {
+          if (lengthShip + colum > 10) {
+            if (isRandom === false) {
+              alert('Kapal jatuh ke jurang bung kalau di situ')
+            }
+            throw false;
+          }
+        } else {
+          if (lengthShip + row > 10) {
+            if (isRandom === false) {
+              alert('Kapal jatuh ke jurang bung kalau di situ')
+            }
+            throw false;
+          }
+        }
+        for (let i = 0; i < lengthShip; i++) {
+          if (orientationPlace === 'kanan') {
+            if (player.board[row][colum + i] !== ' ') {
+              if (isRandom === false) {
+                alert('Sudah ada kapal di sekitar situ bro')
+              }
+              throw false
+            }
+          } else {
+            if (player.board[row+ i][colum] !== ' ') {
+              if (isRandom === false) {
+                alert('Sudah ada kapal di sekitar situ bro')
+              }
+              throw false
+            }
+          }
+        }
+        for (let i = 0; i < lengthShip; i++) {
+          if (orientationPlace === 'kanan') {
+            player.board[row][colum + i] = type
+          } else {
+            player.board[row + i][colum] = type
+          }
+        }
+        var shipleft = player.ship;
+        for (let i = 0; i < shipleft.length; i++) {
+          if (shipleft[i] === type) {
+            shipleft.splice(i,1)
+          }
+        }
+        if (shipleft.length === 0) {
+          submitShip.disabled = true;
+          changePlayerInit.disabled = false;
+          initial += 1;
+          randomPlaceShip.disabled = true;
+          if (initial === 2) {
+            changePlayerInit.disabled = true;
+            playing.disabled = false;
+            randomPlaceShip.disabled = true;
+          }
+        }
+        boardToShow.textContent = showBoard()
+        return true;
+      }
+      function play() {
+        var player = playerTurn.textContent === 'player1' ? player2 : player1;
+        playerTurn.textContent = player.name;
+        boardToShow.textContent = showPlayingBoard();
+        boardCheat.textContent = showBoardCheat();
+        playing.disabled = true
+        var labelCoord = document.createElement("P");
+        var valueLabel = document.createTextNode("Masukkan coordinat (baris,kolom): ")
+        labelCoord.appendChild(valueLabel);
+        document.body.appendChild(labelCoord);
+        inputCoordShoot = document.createElement('input');
+        inputCoordShoot.type = 'text';
+        document.body.appendChild(inputCoordShoot);
+        shootButton = document.createElement('input');
+        shootButton.type = 'submit';
+        shootButton.value = 'SHOOT';
+        document.body.appendChild(shootButton);
+        shootButton.addEventListener('click', shootNormal);
+        changePlayerButton = document.createElement('input');
+        changePlayerButton.type = 'submit';
+        changePlayerButton.value = 'Change Player';
+        document.body.appendChild(changePlayerButton);
+        changePlayerButton.disabled = true;
+        changePlayerButton.addEventListener('click', changePlayer);
+        cheatShoot = document.createElement('input');
+        cheatShoot.type = 'submit';
+        cheatShoot.value = 'SHOOT CHEAT';
+        document.body.appendChild(cheatShoot);
+        cheatShoot.addEventListener('click', shootCheat);
+      }
+
+      function shootNormal() {
+        cheatIndex = 1;
+        var flag = shoot();
+        if (flag === true) {
+          shootButton.disabled = true;
+          changePlayerButton.disabled = false;
+          cheatShoot.disabled = true;
+        }
+      }
+
+      function shootCheat() {
+        var flag = shoot();
+        if (cheatIndex === 5) {
+          shootButton.disabled = true;
+          changePlayerButton.disabled = false;
+          cheatShoot.disabled = true;
+        }
+        if (flag === true) {
+          cheatIndex += 1;
+        }
+      }
+
+      function changePlayer() {
+        playerTurn.textContent = playerTurn.textContent === 'player1' ? 'player2' : 'player1';
+        shootButton.disabled = false;
+        changePlayerButton.disabled = true;
+        cheatShoot.disabled = false;
+        boardToShow.textContent = showPlayingBoard();
+        boardCheat.textContent = showBoardCheat();
+      }
+
+      function shoot() {
+        var player = playerTurn.textContent === 'player1' ? player1 : player2;
+        var guess = player.guess;
+        var inputCoordRaw = inputCoordShoot.value;
+        var dictShip = {
+          "c": "Carrier",
+          "b": "Battleship",
+          "d": "Destroyer",
+          "s": "Submarine",
+          "p": "Patrol Boat"
+        };
+        if (guess.includes(inputCoordRaw.toUpperCase()) === true) {
+          alert('Tadi sudah menembak ke situ');
+          return false;
+        }
+        var row = inputCoordRaw.substring(0,1).toUpperCase().charCodeAt(0) - 65;
+        var column = Number(inputCoordRaw.substring(1,inputCoordRaw.length)) - 1;
+        var enemy = playerTurn.textContent === 'player1' ? player2 : player1;
+        if (enemy.board[row][column] !== ' ') {
+          var shipName = enemy.board[row][column];
+          eventShoot.textContent = `HIT, ${dictShip[shipName]}`
+          var value = enemy.hit[shipName];
+          value -= 1;
+          enemy.hit[shipName] = value;
+          enemy.boardPlay[row][column] = 'x'
+        } else {
+          eventShoot.textContent = 'MISS';
+          enemy.boardPlay[row][column] = 'o';
+        }
+
+        if (enemy.hit[shipName] === 0) {
+          eventShoot.textContent += `\n${dictShip[shipName]} hancur`;
+        }
+        guess.push(inputCoordRaw.toUpperCase());
+        boardToShow.textContent = showPlayingBoard();
+        boardCheat.textContent = showBoardCheat();
+        checkWin();
+        return true;
+      }
+
+      function checkWin() {
+        var ships = ['c', 'b', 'd', 's', 'p'];
+        var total1 = 0;
+        var total2 = 0;
+        for (let i = 0; i < ships.length; i++) {
+          total1 += player1.hit[ships[i]];
+          total2 += player2.hit[ships[i]];
+        }
+        if (total1 === 0 || total2 === 0) {
+          inputCoordShoot.disabled = true;
+          shootButton.disabled = true;
+          changePlayerButton.disabled = true;
+          cheatShoot.disabled = true;
+        }
+
+        if (total1 === 0) {
+          alert('player2 menang')
+        } else if (total2 === 0) {
+          alert('player1 menang')
+        }
+      }
+
+    </script>
+</body>
+
+</html>
